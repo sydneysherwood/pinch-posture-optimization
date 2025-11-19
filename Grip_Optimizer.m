@@ -20,7 +20,7 @@ disp('Setting up the optimization problem...');
 %DEFINE W_EXT IN N/MM
 %0.00098 = 100 g weight operated on by gravity
 %0.
-w_ext = [-10; -10; 0; 0; 0; 0];
+w_ext = [-5; 0; -10; 0; 0; 0];
 
 % Joint torque limits [ABSOLUTE VALUE] -- from Allergo website
 %tau_max = [0.7 0.7 0.7 0.7]';
@@ -28,7 +28,7 @@ w_ext = [-10; -10; 0; 0; 0; 0];
 %CONVERT TO N/MM
 tau_max = [0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7 0.7]'.*1000;
 % Friction coefficient (mu) -- PURELY ARBITRARY FOR NOW
-mu = 2.7;
+mu = 1;
 
 %DECISION VARIABLES
 
