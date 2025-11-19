@@ -54,21 +54,15 @@ Constraints = [Constraints, G * t == -w_ext];
 
 %JOINT TORQUE LIMITS: use jacobian to translate contact forces to joint
 %forces
-tau = J' * t;
-k_all = abs(tau) ./ tau_max; % Symbolic vector of all 16 safety ratios
+k = abs(tau) ./ tau_max; % Symbolic vector of safety ratios
+Constraints = [Constraints, k <= s]; % All ratios must be <= s
 
-% Exclude joints 9, 10, 11, 12 (Ring Finger)
-active_joint_indices = [1:8, 13:16];
-k_active = k_all(active_joint_indices); 
+% (New) Define k_min
+Constraints = [Constraints, k >= k_min]; % All ratios must be >= k_min
 
-% The maximum ratio 's' must still be the maximum of ALL 16 joints (k_all) for safety
-Constraints = [Constraints, k_all <= s]; 
-
-% Define k_min (only for ACTIVE joints)
-Constraints = [Constraints, k_active >= k_min]; % All ACTIVE ratios must be >= k_min
-
-% Define the range r
+% (New) Define the range r
 Constraints = [Constraints, r == s - k_min];
+
 
 %CONTACT FORCE CONSTRAINTS: 
 
@@ -101,15 +95,11 @@ for i = 1:3
     Constraints = [Constraints, f_normal >= 0];
 end
 
-lambda = 0;
-
-% Combined Objective: min ( (1-lambda)*s + lambda*r )
-Objective = (1 - lambda) * s + lambda * r;
+Objective = s; % YALMIP minimizes by default
 
 options = sdpsettings('verbose', 1, 'solver', 'mosek');
 disp('Calling MOSEK to solve the LP...');
 sol = optimize(Constraints, Objective, options);
-
 
 if sol.problem == 0
     disp('Optimal solution found!');
@@ -119,13 +109,8 @@ if sol.problem == 0
     opt_tau = value(tau);
     opt_s = value(s);
     opt_t = value(t);
-    % MINIMAL EDIT: Get the numerical value of r
-    opt_r = value(r); 
     
-    fprintf('Optimal Cost Index (s = k_max): %.4f\n', opt_s);
-    % MINIMAL EDIT: Output the range r
-    fprintf('Optimal Safety Ratio Range (r = s - k_min): %.4f\n', opt_r);
-    fprintf('Weighting Factor (lambda): %.2f\n', lambda);
+    fprintf('Optimal Cost Index (s): %.4f\n', opt_s);
     
     % --- I. Contact Force Table ---
     fprintf('\n## 1. Optimal Contact Forces (t) [N/mm]\n');
@@ -165,6 +150,7 @@ if sol.problem == 0
             JointLabels{end+1} = sprintf('%s_%s', Fingers{f}, JointTypes{j});
         end
     end
+
     % Create a table for joint torques
     JointTorqueTable = table(...
         opt_tau, ...
@@ -248,4 +234,4 @@ if sol.problem == 0
 else
     disp('Error: Problem could not be solved.');
     disp(sol.info);
-end 
+end
